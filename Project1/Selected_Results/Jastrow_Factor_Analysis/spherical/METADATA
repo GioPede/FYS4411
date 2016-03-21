@@ -1,0 +1,10 @@
+These data represent the simulation on systems of 10, 50, 100 bosons with
+interaction and without. The plot shous the ratio of the energies for each 
+alpha. 
+PARAMETERS:
+alpha  -> from 0.15 to 0.7 in steps of 0.5
+beta   =  1.0
+a      =  0.0043 for interaction
+       =  0      for non interacting
+
+MC CYCLES = 10^6
