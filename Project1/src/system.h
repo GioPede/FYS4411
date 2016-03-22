@@ -16,35 +16,30 @@ public:
     class WaveFunction*             getWaveFunction()   { return m_waveFunction; }
     class Hamiltonian*              getHamiltonian()    { return m_hamiltonian; }
     class Sampler*                  getSampler()        { return m_sampler; }
-    std::vector<class Particle*>&  getParticles()      { return m_particles; }
+    std::vector<class Particle*>&   getParticles()      { return m_particles; }
+    std::vector<std::vector<double>>&   getDistance()      { return m_distanceMatrix; }
 
     int getNumberOfParticles()          { return m_numberOfParticles; }
     int getNumberOfDimensions()         { return m_numberOfDimensions; }
     int getNumberOfMetropolisSteps()    { return m_numberOfMetropolisSteps; }
     double getEquilibrationFraction()   { return m_equilibrationFraction; }
-    double getInterparticleDistance(int firstParticleIndex, int secondParticleIndex);
 
 
     void setDistanceMatrix();
     void updateDistanceMatrix();
     void updateDistanceMatrix(int particleIndex);
     bool metropolisStepImportanceSampling();
-    void setQuantumForce();
-    void computeQuantumForce();
     void setDeltaR();
     void computeDeltaR();
 
-    void computeNewQuantumForce();
     void setSampler(class Sampler *sampler);
 
-    void substituteQuantumForce();
 private:
-    double **                       m_distanceMatrix;
+    std::vector<std::vector<double>> m_distanceMatrix;
     int                             m_numberOfParticles = 0;
     int                             m_numberOfDimensions = 0;
     int                             m_numberOfMetropolisSteps = 0;
-    double **                       m_quantumForce;
-    double **                       m_deltaR;
+    std::vector<std::vector<double>>m_deltaR;
     double                          m_equilibrationFraction = 0.0;
     double                          m_stepLength = 0.1;
     double                          m_waveOld= 0.0;

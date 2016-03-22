@@ -20,11 +20,11 @@ int main(int argn, char *argv[]) {
     // SYSTEM RELATED VARIABLES
     int numberOfDimensions  = 3;
     int numberOfParticles   = 10;
-    int numberOfSteps       = (int) 1e6;
+    int numberOfSteps       = (int) 1e3;
     double omega            = 1.0;                      // Oscillator frequency.
-    double alpha            = 0.5; //atof(argv[1]);     // Variational parameter (fixed or computed via dfpmin)
-    double beta             = 2.82843;                  // Elliptic factor
-    double interactionRange = 0.0043;                   // Typical distance of interaction
+    double alpha            = 0.6; //atof(argv[1]);     // Variational parameter (fixed or computed via dfpmin)
+    double beta             = 1.0;//2.82843;                  // Elliptic factor
+    double interactionRange = 0.0;//0.0043;                   // Typical distance of interaction
     double stepLength       = 0.01;                     // Metropolis step length.
     double derivationStep   = 0.01;                     // Derivation step length
     double equilibration    = 0.1;                      // Amount of the total steps used for equilibration.

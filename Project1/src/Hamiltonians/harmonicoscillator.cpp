@@ -20,17 +20,18 @@ double HarmonicOscillator::computeLocalEnergy(std::vector<Particle*> particles) 
     double potentialEnergy = 0;
     double kineticEnergy   = 0;
 
-    double alpha = m_system->getWaveFunction()->getParameters().at(0);
-    double beta = m_system->getWaveFunction()->getParameters().at(1);
-    double interactionRange =  m_system->getWaveFunction()->getParameters().at(2);
+    double alpha = m_system->getWaveFunction()->getParameters()[0];
+    double beta = m_system->getWaveFunction()->getParameters()[1];
+    double interactionRange =  m_system->getWaveFunction()->getParameters()[2];
 
     // compute the harmonic elliptic potential
     double r2 = 0;
     for (int i=0; i < m_system->getNumberOfParticles(); i++) {
         for (int j=0; j < m_system->getNumberOfDimensions() - 1; j++) {
-          r2 += m_system->getParticles().at(i)->getPosition().at(j)*m_system->getParticles().at(i)->getPosition().at(j);
+          r2 += m_system->getParticles()[i]->getPosition()[j]*m_system->getParticles()[i]->getPosition()[j];
         }
-        r2 += particles.at(i)->getPosition().back() * particles.at(i)->getPosition().back() * beta*beta;
+        int j = m_system->getNumberOfDimensions() - 1;
+        r2 += m_system->getParticles()[i]->getPosition()[j]*m_system->getParticles()[i]->getPosition()[j] * beta*beta;
     }
     potentialEnergy = r2*0.5;
 
@@ -44,12 +45,12 @@ double HarmonicOscillator::computeLocalEnergy(std::vector<Particle*> particles) 
     for (int i=0; i < m_system->getNumberOfParticles(); i++) {
         double r_i2 = 0;
         for (int k=0; k < m_system->getNumberOfDimensions(); k++)
-            r_i2 += m_system->getParticles().at(i)->getPosition().at(k)*
-                    m_system->getParticles().at(i)->getPosition().at(k);
+            r_i2 += m_system->getParticles()[i]->getPosition()[k]*
+                    m_system->getParticles()[i]->getPosition()[k];
 
         double sum1 = 0, sum2 = 0, sum3 = 0, sum4 = 0, temp;
         for (int j=0; j < i; j++) {
-            double r_ij = m_system->getInterparticleDistance(i,j);
+            double r_ij = m_system->getDistance()[i][j];
             temp = interactionRange / ((r_ij - interactionRange) * r_ij);
             sum1 += temp;
             sum2 += temp*temp;
@@ -57,25 +58,24 @@ double HarmonicOscillator::computeLocalEnergy(std::vector<Particle*> particles) 
                     ( (r_ij - interactionRange) * (r_ij - interactionRange) * r_ij * r_ij);
             double r_iDotr_j = 0;
             for (int k=0; k < m_system->getNumberOfDimensions()-1; k++)
-                r_iDotr_j += m_system->getParticles().at(i)->getPosition().at(k)*m_system->getParticles().at(j)->getPosition().at(k);
+                r_iDotr_j += m_system->getParticles()[i]->getPosition()[k]*m_system->getParticles()[j]->getPosition()[k];
             int k = m_system->getNumberOfDimensions()-1;
-            r_iDotr_j += beta*m_system->getParticles().at(i)->getPosition().at(k)*m_system->getParticles().at(j)->getPosition().at(k);
-
+            r_iDotr_j += beta*m_system->getParticles()[i]->getPosition()[k]*m_system->getParticles()[j]->getPosition()[k];
             sum4 -= 4 * alpha * interactionRange * r_i2 * r_iDotr_j /
                     ((r_ij - interactionRange) * r_ij * r_ij);
         }
         for (int j=i+1; j < m_system->getNumberOfParticles(); j++) {
-            double r_ij = m_system->getInterparticleDistance(j,i);
+            double r_ij = m_system->getDistance()[j][i];
             temp = interactionRange / ((r_ij - interactionRange) * r_ij);
             sum1 += temp;
             sum3 += (interactionRange -2*r_ij) * interactionRange /
                     ( (r_ij - interactionRange) * (r_ij - interactionRange) * r_ij * r_ij);
             double r_iDotr_j = 0;
             for (int k=0; k < m_system->getNumberOfDimensions() - 1; k++) {
-                r_iDotr_j += m_system->getParticles().at(i)->getPosition().at(k)*m_system->getParticles().at(j)->getPosition().at(k);
+                r_iDotr_j += m_system->getParticles()[i]->getPosition()[k]*m_system->getParticles()[j]->getPosition()[k];
             }
-            r_iDotr_j += beta * m_system->getParticles().at(i)->getPosition().back()*
-                                    m_system->getParticles().at(j)->getPosition().back();
+            int k = m_system->getNumberOfDimensions() - 1;
+            r_iDotr_j += beta * m_system->getParticles()[i]->getPosition()[k]*m_system->getParticles()[j]->getPosition()[k];
             sum4 -= 4 * alpha * interactionRange * r_i2 * r_iDotr_j /
                     ((r_ij - interactionRange) * r_ij * r_ij);
         }
@@ -99,7 +99,7 @@ double HarmonicOscillator::computeLocalEnergyNumeric(std::vector<Particle*> part
     double interactionPotential = 0.0;
     for (unsigned int i=0; i < particles.size(); i++) {
         for (unsigned int j=0; j < i; j++) {
-            if(m_system->getInterparticleDistance(i,j) < m_system->getWaveFunction()->getParameters().at(2)){
+            if(m_system->getDistance()[i][j] < m_system->getWaveFunction()->getParameters()[2]){
                 interactionPotential = 1e100;
                 break;
             }

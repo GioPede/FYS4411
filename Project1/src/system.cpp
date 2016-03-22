@@ -19,7 +19,7 @@ bool System::metropolisStep() {
     double deltaR = (m_random->nextDouble() - 0.5) * m_stepLength;
     double dimensionOfChange = m_random->nextInt(m_numberOfDimensions);
     int selectedParticleIndex = m_random->nextInt(m_numberOfParticles);
-    Particle* selectedParticle = m_particles.at(selectedParticleIndex);
+    Particle* selectedParticle = m_particles[selectedParticleIndex];
     selectedParticle->adjustPosition(deltaR, dimensionOfChange);
     updateDistanceMatrix(selectedParticleIndex);
 
@@ -45,21 +45,21 @@ bool System::metropolisStepImportanceSampling() {
     computeDeltaR();
     for(int i = 0; i < m_numberOfDimensions; i++){
         for (int j=0;j<m_numberOfParticles;j++){
-            m_particles.at(j)->adjustPosition(m_deltaR[i][j], i);
+            m_particles[j]->adjustPosition(m_deltaR[i][j], i);
         }
     }
 
     // COMPUTE NEW VALUES
     updateDistanceMatrix();
-    computeNewQuantumForce();
+    m_waveFunction->computeNewQuantumForce(m_particles);
     double newWaveValue = m_waveFunction->evaluate(m_particles);
 
     // compute the green function
     double greenFunction = 0.0;
     for(int i = 0; i < m_numberOfDimensions; i++)
         for(int j= 0;j< m_numberOfParticles;j++){
-        greenFunction += 0.5 * (m_quantumForce[i][j+m_numberOfParticles] + m_quantumForce[i][j])
-                * (0.5 * 0.5 * m_stepLength *(m_quantumForce[i][j] - m_quantumForce[i][j+m_numberOfParticles])
+        greenFunction += 0.5 * (m_waveFunction->getQuantumForce()[i][j+m_numberOfParticles] + m_waveFunction->getQuantumForce()[i][j])
+                * (0.5 * 0.5 * m_stepLength *(m_waveFunction->getQuantumForce()[i][j] -m_waveFunction->getQuantumForce()[i][j+m_numberOfParticles])
                    -m_deltaR[i][j]);
     }
     greenFunction = exp(greenFunction);
@@ -67,13 +67,13 @@ bool System::metropolisStepImportanceSampling() {
     // accept or reject the move
     if (greenFunction * newWaveValue*newWaveValue/(m_waveOld*m_waveOld) > m_random->nextDouble()){
         m_waveOld = newWaveValue;
-        substituteQuantumForce();
+        m_waveFunction->substituteQuantumForce();
         return true;
     }
     else {
         for(int i = 0; i < m_numberOfDimensions; i++){
             for (int j=0;j<m_numberOfParticles;j++){
-                m_particles.at(j)->adjustPosition(-m_deltaR[i][j], i);
+                m_particles[j]->adjustPosition(-m_deltaR[i][j], i);
             }
         }
         updateDistanceMatrix();
@@ -91,13 +91,11 @@ void System::runMetropolisSteps(int numberOfMetropolisSteps, bool print) {
     m_random = new Random();
     m_random->setSeed(time(NULL));
 
-
+std::cout<< "hi!" << std::endl;
     setDistanceMatrix();
-    setQuantumForce();
+    std::cout<< "hi!" << std::endl;
     setDeltaR();
-    computeQuantumForce();
-    updateDistanceMatrix();
-
+    m_waveFunction->setQuantumForce(m_particles);
     m_sampler->initializeFirstStep();
     m_waveOld = m_waveFunction->evaluate(m_particles);
 
@@ -114,71 +112,14 @@ void System::runMetropolisSteps(int numberOfMetropolisSteps, bool print) {
 
     // COMPUTE AVERAGES AND EXIT
     m_sampler->computeAverages();
-
-    for (int i = 0; i < m_numberOfParticles; ++i)
-        delete [] m_distanceMatrix[i];
-    delete [] m_distanceMatrix;
-    for (int i = 0; i < m_numberOfDimensions; ++i)
-        delete [] m_quantumForce[i];
-    delete [] m_quantumForce;
-    for (int i = 0; i < m_numberOfDimensions; ++i)
-        delete [] m_deltaR[i];
-    delete [] m_deltaR;
 }
 
 // COMUTE A RANDOM MOVE BASED ON THE CURRENT QUANTUM FORCE
 void System::computeDeltaR(){
     for(int i = 0; i < m_numberOfDimensions; i++)
         for(int j = 0; j < m_numberOfParticles; j++){
-            m_deltaR[i][j] = m_random->nextGaussian(0, 1) * sqrt(m_stepLength) + 0.5 * m_stepLength * m_quantumForce[i][j];
+            m_deltaR[i][j] = m_random->nextGaussian(0, 1) * sqrt(m_stepLength) + 0.5 * m_stepLength * m_waveFunction->getQuantumForce()[i][j];
         }
-}
-
-// COMPUTE QUANTUM FORCE WITH CURRENT STATE
-void System::computeQuantumForce(){
-    double a = m_waveFunction->getParameters().at(2);
-    for(int i = 0; i < m_numberOfDimensions; i++)
-        for(int j = 0; j < m_numberOfParticles; j++){
-            m_quantumForce[i][j] = -2*m_particles.at(j)->getPosition().at(i)*m_waveFunction->getParameters().at(0);
-
-            for(int k = 0; k < j; k++){
-                double rjk= m_distanceMatrix[j][k];
-                m_quantumForce[i][j]+= a* (m_particles.at(j)->getPosition().at(i)-m_particles.at(k)->getPosition().at(i))/((rjk-a)*rjk*rjk);
-            }
-            for(int k = j+1; k < m_numberOfParticles; k++){
-                double rjk= m_distanceMatrix[k][j];
-                m_quantumForce[i][j]+= a*(m_particles.at(j)->getPosition().at(i)-m_particles.at(k)->getPosition().at(i))/((rjk-a)*rjk*rjk);
-            }
-            m_quantumForce[i][j]*=2;
-        }
-}
-
-// COMPUTE QUANTUM FORCE FOR THE SUGGESTED MOVE
-void System::computeNewQuantumForce(){
-    double a = m_waveFunction->getParameters().at(2);
-    for(int i = 0; i < m_numberOfDimensions; i++)
-        for(int j = 0; j < m_numberOfParticles; j++){
-
-            m_quantumForce[i][j+m_numberOfParticles] = -2*m_particles.at(j)->getPosition().at(i)*m_waveFunction->getParameters().at(0);
-
-            for(int k = 0; k < j; k++){
-                double rjk= m_distanceMatrix[j][k];
-                m_quantumForce[i][j+m_numberOfParticles]+= a*(m_particles.at(j)->getPosition().at(i)-m_particles.at(k)->getPosition().at(i))/((rjk-a)*rjk*rjk);
-            }
-            for(int k = j+1; k < m_numberOfParticles; k++){
-                double rjk= m_distanceMatrix[k][j];
-                m_quantumForce[i][j+m_numberOfParticles]+= a*(m_particles.at(j)->getPosition().at(i)-m_particles.at(k)->getPosition().at(i))/((rjk-a)*rjk*rjk);
-            }
-            m_quantumForce[i][j+m_numberOfParticles]*=2;
-        }
-}
-
-void System::substituteQuantumForce(){
-    for(int i = 0; i < m_numberOfDimensions; i++)
-        for(int j = 0; j < m_numberOfParticles; j++){
-            m_quantumForce[i][j] = m_quantumForce[i][j+m_numberOfParticles];
-        }
-
 }
 
 // UPDATE THE CURRENT DISTANCE MATRIX
@@ -187,8 +128,8 @@ void System::updateDistanceMatrix() {
         for(int j = 0; j < i; j++){
             m_distanceMatrix[i][j]=0.0;
             for(int k = 0; k < m_numberOfDimensions; k++){
-                m_distanceMatrix[i][j] += (m_particles.at(i)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k)) *
-                                          (m_particles.at(i)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k));}
+                m_distanceMatrix[i][j] += (m_particles[i]->getPosition()[k] - m_particles[j]->getPosition()[k]) *
+                                          (m_particles[i]->getPosition()[k] - m_particles[j]->getPosition()[k]);}
              m_distanceMatrix[i][j] = sqrt(m_distanceMatrix[i][j]);
         }
     }
@@ -200,41 +141,40 @@ void System::updateDistanceMatrix(int particleIndex) {
     for(int j = 0; j < particleIndex; j++){
         m_distanceMatrix[particleIndex][j] = 0.0;
         for(int k = 0; k < m_numberOfDimensions; k++)
-            m_distanceMatrix[particleIndex][j] += (m_particles.at(particleIndex)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k)) *
-                                                  (m_particles.at(particleIndex)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k));
+            m_distanceMatrix[particleIndex][j] += (m_particles[particleIndex]->getPosition()[k] - m_particles[j]->getPosition()[k]) *
+                                                  (m_particles[particleIndex]->getPosition()[k] - m_particles[j]->getPosition()[k]);
         m_distanceMatrix[particleIndex][j] = sqrt(m_distanceMatrix[particleIndex][j]);
     }
     for(int i = particleIndex; i < m_numberOfParticles; i++){
         m_distanceMatrix[i][particleIndex] = 0.0;
         for(int k = 0; k < m_numberOfDimensions; k++)
-            m_distanceMatrix[i][particleIndex] += (m_particles.at(i)->getPosition().at(k) - m_particles.at(particleIndex)->getPosition().at(k)) *
-                                                  (m_particles.at(i)->getPosition().at(k) - m_particles.at(particleIndex)->getPosition().at(k));
+            m_distanceMatrix[i][particleIndex] += (m_particles[i]->getPosition()[k] - m_particles[particleIndex]->getPosition()[k]) *
+                                                  (m_particles[i]->getPosition()[k] - m_particles[particleIndex]->getPosition()[k]);
         m_distanceMatrix[i][particleIndex] = sqrt(m_distanceMatrix[i][particleIndex]);
     }
 }
 
 void System::setDeltaR(){
-    m_deltaR = new double * [m_numberOfDimensions];
+    // CREATE THE MATRIX
+    m_deltaR.resize(m_numberOfDimensions);
     for(int i = 0; i < m_numberOfDimensions; i++)
-        m_deltaR[i] = new double [m_numberOfParticles];
+        m_deltaR[i].resize(m_numberOfParticles);
 }
 
-void System::setQuantumForce(){
-    m_quantumForce = new double * [m_numberOfDimensions];
-    for(int i = 0; i < m_numberOfDimensions; i++)
-        m_quantumForce[i] = new double [2*m_numberOfParticles];
-}
+
 
 void System::setDistanceMatrix() {
-    m_distanceMatrix = new double * [m_numberOfParticles];
+    // CREATE THE MATRIX
+    m_distanceMatrix.resize(m_numberOfParticles);
     for(int i = 0; i < m_numberOfParticles; i++)
-        m_distanceMatrix[i] = new double [m_numberOfParticles];
+        m_distanceMatrix[i].resize(m_numberOfParticles);
+
     for(int i = 0; i < m_numberOfParticles; i++)
         for(int j = 0; j < i; j++){
             m_distanceMatrix[i][j] = 0.0;
             for(int k = 0; k < m_numberOfDimensions; k++){
-                m_distanceMatrix[i][j] += (m_particles.at(i)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k)) *
-                                          (m_particles.at(i)->getPosition().at(k) - m_particles.at(j)->getPosition().at(k));
+                m_distanceMatrix[i][j] += (m_particles[i]->getPosition()[k] - m_particles[j]->getPosition()[k]) *
+                                          (m_particles[i]->getPosition()[k] - m_particles[j]->getPosition()[k]);
             }
             m_distanceMatrix[i][j] = sqrt(m_distanceMatrix[i][j]);
         }
@@ -242,10 +182,6 @@ void System::setDistanceMatrix() {
 
 void System::setSampler(Sampler *sampler){
     m_sampler = sampler;
-}
-
-double System::getInterparticleDistance(int firstParticleIndex, int secondParticleIndex) {
-    return m_distanceMatrix[firstParticleIndex][secondParticleIndex];
 }
 
 void System::setNumberOfParticles(int numberOfParticles) {

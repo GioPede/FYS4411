@@ -31,10 +31,11 @@ void Sampler::initializeFirstStep(){
     m_dePsideAlpha = 0.0;
     for (int i=0; i < m_system->getNumberOfParticles(); i++) {
         for (int j=0; j < m_system->getNumberOfDimensions() - 1; j++) {
-            m_dePsideAlpha -= m_system->getParticles().at(i)->getPosition().at(j)*m_system->getParticles().at(i)->getPosition().at(j);
+            m_dePsideAlpha -= m_system->getParticles()[i]->getPosition()[j]*m_system->getParticles()[i]->getPosition()[j];
         }
-        m_dePsideAlpha -= m_system->getParticles().at(i)->getPosition().back() * m_system->getParticles().at(i)->getPosition().back() *
-                m_system->getWaveFunction()->getParameters().at(1);
+        int j = m_system->getNumberOfDimensions() - 1;
+        m_dePsideAlpha -= m_dePsideAlpha -= m_system->getParticles()[i]->getPosition()[j]*m_system->getParticles()[i]->getPosition()[j]*
+                          m_system->getWaveFunction()->getParameters()[1];
     }
     m_dePsideAlphaELocal = m_dePsideAlpha * m_localEnergy;
 }
@@ -47,12 +48,13 @@ void Sampler::sample(bool acceptedStep) {
         m_dePsideAlpha = 0.0;
         for (int i=0; i < m_system->getNumberOfParticles(); i++) {
             for (int j=0; j < m_system->getNumberOfDimensions() - 1; j++) {
-              m_dePsideAlpha -= m_system->getParticles().at(i)->getPosition().at(j)
-                               *m_system->getParticles().at(i)->getPosition().at(j);
+              m_dePsideAlpha -= m_system->getParticles()[i]->getPosition()[j]
+                               *m_system->getParticles()[i]->getPosition()[j];
             }
-            m_dePsideAlpha -= m_system->getParticles().at(i)->getPosition().back()
-                             *m_system->getParticles().at(i)->getPosition().back()
-                             *m_system->getWaveFunction()->getParameters().at(1);
+            int j = m_system->getNumberOfDimensions() - 1;
+            m_dePsideAlpha -= m_system->getParticles()[i]->getPosition()[j]
+                             *m_system->getParticles()[i]->getPosition()[j]
+                             *m_system->getWaveFunction()->getParameters()[1];
         }
         m_dePsideAlphaELocal = m_dePsideAlpha * m_localEnergy;
         m_numberAccepted++;
@@ -84,7 +86,7 @@ void Sampler::printOutputToTerminal() {
     cout << "  -- Wave function parameters -- " << endl;
     cout << " Number of parameters : " << p << endl;
     for (int i=0; i < p; i++) {
-        cout << " Parameter " << i+1 << " : " << pa.at(i) << endl;
+        cout << " Parameter " << i+1 << " : " << pa[i] << endl;
     }
     cout << endl;
     cout << "  -- Reults -- " << endl;
